@@ -31,24 +31,36 @@ rm -f ./tmp/worker*_done.txt 2>/dev/null && log_info "既存の完了ファイ�
 log_success "✅ クリーンアップ完了"
 echo ""
 
-# STEP 2: multiagentセッション作成（4ペイン：boss1 + worker1,2,3）
-log_info "📺 multiagentセッション作成開始 (4ペイン)..."
+# STEP 2: multiagentセッション作成（7ペイン：boss1 + worker1,2,3 + reviewer1,2,3）
+log_info "📺 multiagentセッション作成開始 (7ペイン)..."
 
 # 最初のペイン作成
 tmux new-session -d -s multiagent -n "agents"
 
-# 2x2グリッド作成（合計4ペイン）
-tmux split-window -h -t "multiagent:0"      # 水平分割（左右）
-tmux select-pane -t "multiagent:0.0"
-tmux split-window -v                        # 左側を垂直分割
-tmux select-pane -t "multiagent:0.2"
-tmux split-window -v                        # 右側を垂直分割
+# 7ペイン構成を作成
+# 上段: boss1 (全幅)
+# 中段: worker1, worker2, worker3
+# 下段: reviewer1, reviewer2, reviewer3
+
+# まず上下に3分割
+tmux split-window -v -t "multiagent:0" -p 66    # 上33%、下67%
+tmux split-window -v -t "multiagent:0.1" -p 50  # 下を半分に分割
+
+# 中段（worker用）を3分割
+tmux select-pane -t "multiagent:0.1"
+tmux split-window -h -t "multiagent:0.1" -p 66
+tmux split-window -h -t "multiagent:0.2" -p 50
+
+# 下段（reviewer用）を3分割
+tmux select-pane -t "multiagent:0.4"
+tmux split-window -h -t "multiagent:0.4" -p 66
+tmux split-window -h -t "multiagent:0.5" -p 50
 
 # ペインタイトル設定
 log_info "ペインタイトル設定中..."
-PANE_TITLES=("boss1" "worker1" "worker2" "worker3")
+PANE_TITLES=("boss1" "worker1" "worker2" "worker3" "reviewer1" "reviewer2" "reviewer3")
 
-for i in {0..3}; do
+for i in {0..6}; do
     tmux select-pane -t "multiagent:0.$i" -T "${PANE_TITLES[$i]}"
     
     # 作業ディレクトリ設定
@@ -58,9 +70,12 @@ for i in {0..3}; do
     if [ $i -eq 0 ]; then
         # boss1: 赤色
         tmux send-keys -t "multiagent:0.$i" "export PS1='(\[\033[1;31m\]${PANE_TITLES[$i]}\[\033[0m\]) \[\033[1;32m\]\w\[\033[0m\]\$ '" C-m
-    else
+    elif [ $i -le 3 ]; then
         # workers: 青色
         tmux send-keys -t "multiagent:0.$i" "export PS1='(\[\033[1;34m\]${PANE_TITLES[$i]}\[\033[0m\]) \[\033[1;32m\]\w\[\033[0m\]\$ '" C-m
+    else
+        # reviewers: 緑色
+        tmux send-keys -t "multiagent:0.$i" "export PS1='(\[\033[1;32m\]${PANE_TITLES[$i]}\[\033[0m\]) \[\033[1;32m\]\w\[\033[0m\]\$ '" C-m
     fi
     
     # ウェルカムメッセージ
@@ -97,11 +112,14 @@ echo ""
 
 # ペイン構成表示
 echo "📋 ペイン構成:"
-echo "  multiagentセッション（4ペイン）:"
+echo "  multiagentセッション（7ペイン）:"
 echo "    Pane 0: boss1     (チームリーダー)"
 echo "    Pane 1: worker1   (実行担当者A)"
 echo "    Pane 2: worker2   (実行担当者B)"
 echo "    Pane 3: worker3   (実行担当者C)"
+echo "    Pane 4: reviewer1 (レビュー担当A)"
+echo "    Pane 5: reviewer2 (レビュー担当B)"
+echo "    Pane 6: reviewer3 (レビュー担当C)"
 echo ""
 echo "  presidentセッション（1ペイン）:"
 echo "    Pane 0: PRESIDENT (プロジェクト統括)"
@@ -118,12 +136,13 @@ echo "  2. 🤖 Claude Code起動:"
 echo "     # 手順1: President認証"
 echo "     tmux send-keys -t president 'claude' C-m"
 echo "     # 手順2: 認証後、multiagent一括起動"
-echo "     for i in {0..3}; do tmux send-keys -t multiagent:0.\$i 'claude' C-m; done"
+echo "     for i in {0..6}; do tmux send-keys -t multiagent:0.\$i 'claude' C-m; done"
 echo ""
 echo "  3. 📜 指示書確認:"
 echo "     PRESIDENT: instructions/president.md"
 echo "     boss1: instructions/boss.md"
 echo "     worker1,2,3: instructions/worker.md"
+echo "     reviewer1,2,3: instructions/reviewer.md"
 echo "     システム構造: CLAUDE.md"
 echo ""
 echo "  4. 🎯 デモ実行: PRESIDENTに「あなたはpresidentです。指示書に従って」と入力" 

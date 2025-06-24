@@ -1,0 +1,27 @@
+{
+  "instruction_mode": "auto",
+  "instruction_mode_comment": "auto, lite, normal のいずれかを設定。autoの場合はAIが自動判断",
+  "current_instructions": {
+    "boss": "instructions/boss.md",
+    "worker": "instructions/worker.md",
+    "reviewer": "instructions/reviewer.md"
+  },
+  "auto_selection_criteria": {
+    "use_lite_when": [
+      "フェーズ数が3以下",
+      "ファイル数が20以下の見込み",
+      "単一言語・単一フレームワーク",
+      "既存プロジェクトの小規模修正",
+      "POCやプロトタイプ開発"
+    ],
+    "use_normal_when": [
+      "フェーズ数が4以上",
+      "ファイル数が20を超える見込み",
+      "複数言語・複数フレームワーク",
+      "新規プロジェクトの本格開発",
+      "品質要求が高い本番システム"
+    ]
+  },
+  "last_updated": "2025-06-24",
+  "selected_by": "未選択"
+}
