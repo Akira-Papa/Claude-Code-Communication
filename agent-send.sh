@@ -68,11 +68,27 @@ send_message() {
     tmux send-keys -t "$target" C-c
     sleep 0.3
     
-    # メッセージ送信
-    tmux send-keys -t "$target" "$message"
-    sleep 0.1
+    # 複数行メッセージを一括送信（効率化）
+    # メッセージ全体をクリップボード経由で送信
+    if command -v pbcopy >/dev/null 2>&1; then
+        # macOS: pbcopy/pbpaste使用
+        echo -n "$message" | pbcopy
+        tmux send-keys -t "$target" C-v
+        sleep 0.3
+    elif command -v xclip >/dev/null 2>&1; then
+        # Linux: xclip使用
+        echo -n "$message" | xclip -selection clipboard
+        tmux send-keys -t "$target" C-S-v
+        sleep 0.3
+    else
+        # クリップボードが使用できない場合は直接送信
+        # tmuxのpaste-bufferを使用
+        tmux set-buffer "$message"
+        tmux paste-buffer -t "$target"
+        sleep 0.3
+    fi
     
-    # エンター押下
+    # エンター押下で送信完了
     tmux send-keys -t "$target" C-m
     sleep 0.5
 }
